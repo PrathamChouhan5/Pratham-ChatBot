@@ -1,0 +1,425 @@
+Make an RG
+
+	azure-foundary in RG
+
+	Go to azure-foundry portal
+
+Go ->Models + endpoints
+
+	In the left sidebar
+
+	Scroll down to My assets
+
+	Click Models + endpoints
+
+
+	Create deployment  ------->  
+
+Model	gpt-4.1
+Deployment name	chatbot-deploy
+
+copy -> Endpoint (Target URI)
+
+copy -> API Key
+
+copy -> Deployment name (already known)
+
+------------------------------------------------------------------------------------------
+
+	VS code part :-
+
+Open Visual Studio Code
+
+Click File → Open Folder
+
+Create a NEW empty folder : ai-chatbot-app
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+	requirements.txt :- 
+
+python-dotenv
+flask
+openai
+gunicorn
+
+----------------------------------------------------Run in terminal VS code-----------------------------------------------------------
+
+python -m venv venv
+venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install openai azure-identity
+pip3 install flask
+pip3 install python-dotenv
+pip install --upgrade openai
+pip install openai==0.28
+deactivate
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+	create.env file (Storing Secret ENDPOINT, KEY) :-
+
+AZURE_OPENAI_ENDPOINT=https://prathamfoundrynew.cognitiveservices.azure.com
+AZURE_OPENAI_KEY=7vk9OrGBBcIcPOT7XDF1wBw8pZLSAHMCVvfwBvDr4qJfPfwukRrWJQQJ99CAACYeBjFXJ3w3AAAAACOGTOG2
+AZURE_OPENAI_DEPLOYMENT=gpt-4.1-mini
+PORT = 5000
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+
+	create app.py file :-
+
+
+import os
+from flask import Flask, render_template, request, jsonify
+from openai import AzureOpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+app = Flask(__name__)
+
+# Azure OpenAI client configuration
+client = AzureOpenAI(
+    api_key=os.getenv("AZURE_OPENAI_KEY"),
+    api_version="2025-01-01-preview",
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+)
+
+DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    user_message = request.json.get("message")
+
+    response = client.chat.completions.create(
+        model=DEPLOYMENT_NAME,
+        messages=[
+            {"role": "system", "content": "You are a helpful AI assistant."},
+            {"role": "user", "content": user_message}
+        ]
+    )
+
+    reply = response.choices[0].message.content
+    return jsonify({"reply": reply})
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+
+----------------------------------------------------------------------------------------------------------------------------
+
+
+create folder ----> templates
+
+file-----> index.html
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pratham AI Assistant</title>
+<style>
+:root {
+    --primary: #6366f1;
+    --accent: #22d3ee;
+    --bg-dark: #0f172a;
+    --bg-light: #111827;
+    --card: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.12);
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    height: 100vh;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    background: linear-gradient(120deg, #020617, #0f172a);
+    color: #e5e7eb;
+    display: flex;
+}
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #020617, #020617cc);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+.sidebar p {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-bottom: 24px;
+}
+.new-chat {
+    padding: 12px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+.new-chat:hover {
+    opacity: 0.9;
+}
+/* Main area */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+/* Header */
+.topbar {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    font-size: 18px;
+    font-weight: 600;
+}
+/* Chat area */
+.chat-area {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+}
+.message {
+    max-width: 720px;
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    border-radius: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    animation: slideUp 0.25s ease;
+}
+.message.user {
+    margin-left: auto;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    border: none;
+}
+.message.bot {
+    backdrop-filter: blur(12px);
+}
+/* Input */
+.input-area {
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.4));
+}
+.input-box {
+    display: flex;
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid var(--border);
+}
+.input-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 15px;
+}
+.input-box button {
+    padding: 10px 16px;
+    margin-left: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+/* Animations */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+<div class="sidebar">
+    <h2>Azure AI</h2>
+    <p>Conversational Assistant</p>
+    <button class="new-chat" onclick="clearChat()">+ New Chat</button>
+</div>
+<div class="main">
+    <div class="topbar">AI Assistant</div>
+    <div class="chat-area" id="chatBox"></div>
+    <div class="input-area">
+        <div class="input-box">
+            <input id="messageInput" placeholder="Ask something intelligent..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+<script>
+const chatBox = document.getElementById("chatBox");
+const input = document.getElementById("messageInput");
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
+function addMessage(text, type) {
+    const div = document.createElement("div");
+    div.className = "message " + type;
+    div.textContent = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+function clearChat() {
+    chatBox.innerHTML = "";
+}
+async function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+    addMessage(message, "user");
+    input.value = "";
+    const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+    });
+    const data = await res.json();
+    addMessage(data.reply, "bot");
+}
+</script>
+</body>
+</html>
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+python app.py  check and get link
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+	Create Web-App :-
+
+Runtime stack = python 3.10
+Pricing B1
+
+
+	Go to Webapp :-
+
+configuration -> leave preview -> Turn ON  SCM & FTP  -> Startup Command -> gunicorn --bind=0.0.0.0:5000 app:app
+Deployment center -> Local Git -> SAVE -> Git clone
+Environment variables -> Add -> Add your .env file credentials
+
+
+	Go to VS code :-
+
+git init
+git add .
+git commit -m "Initial"
+git remote add azure URL_PASTE
+git push azure master -> Enter credentials which you will get from Webapp portal(Local Git/FTPS Credentials-Username, Password)
+
+Check - Browse Webapp
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+	another index.html script :-
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chatbot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; background-color: #f4f4f9; }
+        #chatbox { border: 1px solid #ccc; padding: 15px; width: 500px; height: 400px; overflow-y: scroll; background: white; border-radius: 8px; }
+        .user { color: #0056b3; margin-bottom: 10px; }
+        .bot { color: #28a745; margin-bottom: 10px; white-space: pre-wrap; }
+        #message { width: 350px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Pratham's AI Chatbot</h1>
+    <div id="chatbox"></div>
+    <br>
+    <input type="text" id="message" placeholder="Type your message here" onkeypress="if(event.key === 'Enter') sendMessage()">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        async function sendMessage() {
+            const messageInput = document.getElementById("message");
+            const message = messageInput.value;
+            if (!message) return;
+
+            // Display user message
+            const chatbox = document.getElementById("chatbox");
+            chatbox.innerHTML += `<p class="user"><strong>You:</strong> ${message}</p>`;
+            
+            // Clear input and scroll
+            messageInput.value = "";
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            try {
+                // FIXED: Set Content-Type to application/json
+                // FIXED: Use JSON.stringify for the body
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json" 
+                    },
+                    body: JSON.stringify({ "message": message })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Server error: " + response.status);
+                }
+
+                // FIXED: Parse the response as JSON
+                const data = await response.json();
+                const botReply = data.reply;
+
+                chatbox.innerHTML += `<p class="bot"><strong>Bot:</strong> ${botReply}</p>`;
+            } catch (error) {
+                chatbox.innerHTML += `<p style="color:red;"><strong>Error:</strong> Could not connect to server.</p>`;
+                console.error("Error:", error);
+            }
+
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
